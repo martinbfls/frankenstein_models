@@ -40,6 +40,16 @@ def get_model(model_name, dataset_name, pretrained=False):
             model = VGG(model_name)
         elif model_name == 'MobileNetV2':
             model = MobileNetV2(num_classes=num_classes, train_dp=0, test_dp=0, droplayer=0, bdp=0)
+        elif model_name == 'Chimera' or model_name.startswith('Chimera-'):
+            # architecture sampled from the chimera grammar; fresh init, trained by the framework.
+            # a distinct seed is drawn from the (already-seeded) torch RNG so ensemble members differ
+            # reproducibly given --modelkey.
+            from .chimera_adapter import build_chimera
+            seed = int(torch.randint(0, 2**31 - 1, (1,)).item())
+            model = build_chimera(seed, num_classes=num_classes)
+        elif model_name in ('V1', 'V2', 'V3', 'A', 'B'):
+            from .chimera_adapter import build_named
+            model = build_named(model_name, num_classes=num_classes)
         else:
             raise ValueError(f'Architecture {model_name} not implemented for dataset {dataset_name}.')
 
