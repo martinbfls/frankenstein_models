@@ -129,18 +129,26 @@ def is_weight(name):
 # ----------------------------------------------------------------------------- donor bank
 def load_donor_registry(epoch):
     """family -> list of donor blocks; and net_id -> ordered blocks + head (for tails)."""
-    reg = {"resnet": [], "convnext": []}
-    nets = {}
+    entries = []
     for path in sorted(glob.glob(os.path.join(C.CKPT_DIR, "*_e%d.pt" % epoch))):
         base = os.path.basename(path)
         name = base.split("_s")[0]
         if name not in C.BANK_ARCHS:          # bank only
             continue
         ck = torch.load(path, map_location="cpu")
-        arch = ck["arch"]
+        entries.append((base, ck["arch"], ck["state_dict"]))
+    return registry_from_entries(entries)
+
+
+def registry_from_entries(entries):
+    """Same as load_donor_registry, from (net_id, arch, state_dict) triples already in
+    memory (e.g. FLIP expert checkpoints)."""
+    reg = {"resnet": [], "convnext": []}
+    nets = {}
+    for base, arch, sd in entries:
+        sd = {k: v.detach().cpu() for k, v in sd.items()}
         net = M.build_from_arch(arch)
-        net.load_state_dict(ck["state_dict"])
-        sd = ck["state_dict"]
+        net.load_state_dict(sd)
         blocks = []
         for i, meta in enumerate(net.block_meta):
             pref = "blocks.%d." % i
