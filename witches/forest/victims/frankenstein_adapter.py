@@ -5,7 +5,11 @@ Model names understood by ``get_model`` (CIFAR10):
                                (frankenstein.chimera, q and lam from frankenstein/config.py);
   - ``Frankenstein-q<val>``  : same with inheritance probability q=<val>
                                (``Frankenstein-q0`` = random-weights null, same grammar);
-  - ``V1, V2, V3, A, B``     : named architectures of frankenstein/config.py, fresh init.
+  - ``V1, V2, V3, A, B``     : named architectures of frankenstein/config.py, fresh init;
+  - ``<name>-s<seed>``       : the same, loaded from the trained checkpoint
+                               checkpoints/<name>_s<seed>_e<donor_epoch>.pt (brew with
+                               ``--skip_clean_training``). Such checkpoints are excluded from
+                               ``victim_alignment`` (no cosine read on the surrogate itself).
 
 Frankenstein weights come from the bank: brew with ``--skip_clean_training`` (or a short
 ``--max_epoch``) so that Witches does not retrain them; ``recalibrate`` re-estimates their
@@ -52,6 +56,21 @@ def build_named(name, num_classes=10):
     return _M.build_from_arch(arch, num_classes)
 
 
+# checkpoint names (<name>_s<seed>_e<epoch>) loaded as surrogates in this process
+SURROGATE_CKPTS = set()
+
+
+def build_pretrained(name, num_classes=10):
+    """``<name>-s<seed>``: named architecture loaded from its trained bank/victim checkpoint."""
+    arch_name, seed = name.split("-s")
+    net = build_named(arch_name, num_classes=num_classes)
+    ckpt = "%s_s%s_e%d" % (arch_name, seed, _C.CHIMERA["donor_epoch"])
+    net.load_state_dict(torch.load(os.path.join(_C.CKPT_DIR, ckpt + ".pt"), map_location="cpu")["state_dict"])
+    SURROGATE_CKPTS.add(ckpt)
+    print(f"{name}: loaded checkpoint {ckpt}")
+    return net
+
+
 def recalibrate(victim, kettle):
     """Re-estimate the BN statistics of every Frankenstein model of a Witches victim on
     clean (normalised, non-augmented) training batches."""
@@ -89,7 +108,8 @@ def _poison_grad(net, kettle, poison_delta, params, device, batch_size=128):
 def victim_alignment(kettle, poison_delta, names, epochs, device):
     """cos(poison gradient, adversarial target gradient) measured on clean checkpoints of
     the VICTIM architectures (frankenstein.train_bank, all seeds, given epochs), i.e. the
-    quantity Witches maximises on its surrogates, read on the true victim. Also returns
+    quantity Witches maximises on its surrogates, read on the true victim (checkpoints used
+    as surrogates are skipped). Also returns
     the same cosine without delta (clean poison images) as baseline.
     Returns {ckpt_name: (cos_poisoned, cos_clean)}."""
     targets = torch.stack([d[0] for d in kettle.targetset]).to(device)
@@ -102,7 +122,7 @@ def victim_alignment(kettle, poison_delta, names, epochs, device):
         for seed in _C.TRAIN_SEEDS:
             for ep in epochs:
                 path = os.path.join(_C.CKPT_DIR, "%s_s%d_e%d.pt" % (name, seed, ep))
-                if not os.path.exists(path):
+                if not os.path.exists(path) or "%s_s%d_e%d" % (name, seed, ep) in SURROGATE_CKPTS:
                     continue
                 net = _M.build_from_arch(arch)
                 net.load_state_dict(torch.load(path, map_location="cpu")["state_dict"])

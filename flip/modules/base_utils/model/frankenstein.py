@@ -4,7 +4,10 @@ Flags:
   - ``V1, V2, V3, A, B``        : named architectures of frankenstein/config.py, fresh init;
   - ``frank-<seed>``            : Frankenstein network reassembled from the checkpoint bank
                                   (deterministic given the seed and the bank);
-  - ``frank-<seed>-q<val>``     : same with inheritance probability q=<val>.
+  - ``frank-<seed>-q<val>``     : same with inheritance probability q=<val>;
+  - ``<name>-ckpt<seed>``       : named architecture loaded from the trained checkpoint
+                                  checkpoints/<name>_s<seed>_e<donor_epoch>.pt. Used as experts
+                                  exactly like frank-* (white-box / real-architecture arms).
 
 The bank was trained with CIFAR_STD of frankenstein/config.py while FLIP normalises CIFAR
 with another std (same mean): every model is wrapped in ``Rescale`` so that it sees inputs
@@ -27,7 +30,12 @@ NAMED = ("V1", "V2", "V3", "A", "B")
 
 
 def is_project_flag(flag):
-    return flag in NAMED or flag.startswith("frank-")
+    return flag in NAMED or flag.startswith("frank-") or is_ckpt_flag(flag)
+
+
+def is_ckpt_flag(flag):
+    name, _, seed = flag.partition("-ckpt")
+    return name in NAMED and seed.isdigit()
 
 
 class Rescale(torch.nn.Module):
@@ -58,6 +66,12 @@ def load_project_model(flag, std_in):
     if flag in NAMED:
         arch = C.VICTIM_ARCHS.get(flag) or C.BANK_ARCHS.get(flag)
         net = M.build_from_arch(arch)
+    elif is_ckpt_flag(flag):
+        name, seed = flag.split("-ckpt")
+        net = M.build_from_arch(C.VICTIM_ARCHS.get(name) or C.BANK_ARCHS.get(name))
+        path = os.path.join(C.CKPT_DIR, "%s_s%s_e%d.pt" % (name, seed, C.CHIMERA["donor_epoch"]))
+        net.load_state_dict(torch.load(path, map_location="cpu")["state_dict"])
+        print(f"{flag}: loaded {path}")
     else:
         seed, q = parse_frank_flag(flag)
         net, info = CH.build_frankenstein(seed, q=q)

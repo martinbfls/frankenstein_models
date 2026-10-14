@@ -14,7 +14,7 @@ target_label = "int: {0,1,...,9}. Specifies label to attack."
 poisoner = "string: Form: {{1,2,3,9}xp, {1,2}xs, {1,4}xl}. Integer resembles number of attacks and string represents type."
 
 [OPTIONAL]
-input_pths = "string. Format string path to model checkpoint .pth files with three '{}'s. If omitted, expert_model must be 'frank-{}[-q<val>]': expert k is the Frankenstein network frank-k rebuilt from the checkpoint bank, used as starting point without training (expert_config.experts = number of experts)."
+input_pths = "string. Format string path to model checkpoint .pth files with three '{}'s. If omitted, expert_model must be 'frank-{}[-q<val>]' or '<name>-ckpt{}': expert k is the Frankenstein network frank-k rebuilt from the checkpoint bank (or the trained checkpoint <name>_s<k>), used as starting point without training (expert_config.experts = number of experts)."
 opt_pths = "string. Format string path to optimizer checkpoint .pth files with three '{}'s. Required with input_pths."
 batch_size = "int: {0,1,...,infty}. Specifies batch size. Set to default for trainer if omitted."
 epochs = "int: {0,1,...,infty}. Specifies number of epochs. Set to default for trainer if omitted."

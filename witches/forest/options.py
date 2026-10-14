@@ -84,6 +84,12 @@ def options():
                         help='Epochs of the clean victim checkpoints (checkpoints/<vnet>_s<seed>_e<epoch>.pt) on which '
                              'cos(poison grad, target grad) is measured after brewing. Empty-matching names are skipped.')
 
+    # Resuming (frankenstein.run_study)
+    parser.add_argument('--delta_cache', default=None, type=str,
+                        help='File holding the brewed poison: loaded instead of brewing if it exists, written after brewing otherwise.')
+    parser.add_argument('--resume', action='store_true',
+                        help='Skip the victims that already have a row (same victim, same poisonkey) in the result table.')
+
     # Frankenstein surrogates
     parser.add_argument('--skip_clean_training', action='store_true',
                         help='Brew directly on the initial weights (Frankenstein surrogates inherit them from the bank).')

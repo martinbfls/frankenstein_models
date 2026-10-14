@@ -12,3 +12,6 @@ __pycache__/
 # FLIP outputs
 flip/out/
 flip/data/
+
+# study outputs (frankenstein.run_study)
+results/

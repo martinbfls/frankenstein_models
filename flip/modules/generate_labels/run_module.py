@@ -65,15 +65,18 @@ def run(experiment_name, module_name, **kwargs):
 
     # Expert starting points. Two sources:
     #  - trajectories (input_pths / opt_pths given): checkpoints saved by train_expert;
-    #  - Frankenstein experts (no input_pths): expert k is the network rebuilt from the
-    #    checkpoint bank by expert_model.format(k) (e.g. "frank-{}"), used as is, with a
-    #    fresh optimizer state (no momentum). No expert training.
+    #  - fixed experts (no input_pths): expert k is the network expert_model.format(k), either
+    #    a Frankenstein rebuilt from the checkpoint bank ("frank-{}") or a trained checkpoint
+    #    ("<name>-ckpt{}"), used as is, with a fresh optimizer state (no momentum). No expert
+    #    training.
     frank_experts = input_pths is None
     if frank_experts:
-        if not expert_model_flag.startswith("frank-") or '{}' not in expert_model_flag:
-            raise ValueError("Without input_pths, expert_model must be 'frank-{}[-q<val>]'.")
+        if '{}' not in expert_model_flag or not (expert_model_flag.startswith("frank-")
+                                                 or "-ckpt{}" in expert_model_flag):
+            raise ValueError("Without input_pths, expert_model must be 'frank-{}[-q<val>]' "
+                             "or '<name>-ckpt{}'.")
         n_experts = {**DEFAULT_EXPERT_CONFIG, **expert_config}['experts']
-        print(f"Using {n_experts} Frankenstein experts rebuilt from the checkpoint bank...")
+        print(f"Using {n_experts} fixed experts ({expert_model_flag})...")
         expert_ids = np.random.randint(n_experts, size=config['iterations']).tolist()
     else:
         print("Loading expert trajectories...")

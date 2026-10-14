@@ -14,6 +14,25 @@ Métriques : **ASR** et **similarité cosinus** entre le gradient des poisons et
 - `flip/` : FLIP, avec les flags `frank-<seed>[-q<val>]`, `V1..V3`, `A`, `B`
   (`modules/base_utils/model/frankenstein.py`).
 
+## Tout en une commande (depuis la racine du dépôt)
+```bash
+python -m frankenstein.run_study --dry-run   # affiche le plan et les commandes, n'exécute rien
+python -m frankenstein.run_study             # tout (reprenable), puis figures + résumé
+python -m frankenstein.run_study --plots-only
+python -m frankenstein.run_study --attacks witches --no-asr   # le moins cher : cosinus seul
+```
+Bras : white-box (checkpoint de la victime), Frankenstein (K=4), Frankenstein q=0 (nul),
+banque A, banque B (mauvaise architecture). Witches : `--keys` cibles, une infusion par
+(bras, clé) évaluée sur V1-V3. FLIP : experts = points de départ fixes (Frankenstein ou
+checkpoints entraînés), même protocole pour tous les bras. Sorties dans `results/hypothesis/` :
+`figures/*.png`, `summary.md`, `logs/`.
+**Reprise** : si la commande est interrompue (Ctrl-C, plantage, session perdue), relancer exactement
+la même commande. Les unités terminées sont sautées (marqueurs dans `done/`) ; le poison infusé est
+mis en cache (`witches/deltas/`), donc une interruption pendant le réentraînement des victimes ne
+refait pas l'infusion, et seules les victimes manquantes sont évaluées. Seule l'unité en cours au
+moment de l'interruption est refaite. Relancer avec d'autres paramètres est refusé (`run_args.json`),
+sauf `--keys` plus grand (ajoute des cibles) ou `--force`.
+
 ## Étapes (depuis la racine du dépôt)
 ```bash
 python -m frankenstein.train_bank all        # banque A,B + victimes V1-V3, 3 graines, 15 époques

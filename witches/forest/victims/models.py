@@ -1,5 +1,6 @@
 """Model definitions."""
 
+import re
 import torch
 import torchvision
 from torchvision.models.resnet import BasicBlock, Bottleneck
@@ -49,6 +50,10 @@ def get_model(model_name, dataset_name, pretrained=False):
         elif model_name in ('V1', 'V2', 'V3', 'A', 'B'):
             from .frankenstein_adapter import build_named
             model = build_named(model_name, num_classes=num_classes)
+        elif re.fullmatch(r'(V1|V2|V3|A|B)-s\d+', model_name):
+            # trained checkpoint checkpoints/<name>_s<seed>_e<donor_epoch>.pt (brew with --skip_clean_training)
+            from .frankenstein_adapter import build_pretrained
+            model = build_pretrained(model_name, num_classes=num_classes)
         else:
             raise ValueError(f'Architecture {model_name} not implemented for dataset {dataset_name}.')
 
