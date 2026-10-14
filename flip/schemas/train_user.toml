@@ -7,7 +7,7 @@
 [train_user]
 input_labels = "string. Path to input labels .npy files (slurm compatible)."
 output_dir = "string. Path to output directory (slurm compatible)."
-user_model = "string: {r32p, r18, r18_tin, vgg, vgg_pretrain, vit_pretrain}. For ResNets, VGG-19s, and ViTs."
+user_model = "string: {r32p, r18, r18_tin, vgg, vgg_pretrain, vit_pretrain, V1, V2, V3, A, B}. For ResNets, VGG-19s, ViTs, and the victim / bank architectures of the Frankenstein package."
 dataset = "string: {cifar, cifar_100, tiny_imagenet}. For CIFAR-10, CIFAR-100 and Tiny Imagenet datasets."
 trainer = "string: {sgd, adam}. Specifies optimizer."
 source_label = "int: {0,1,...,9}. Specifies label to mimic."

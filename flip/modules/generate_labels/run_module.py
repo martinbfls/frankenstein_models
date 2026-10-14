@@ -3,6 +3,7 @@ Optimizes logit labels given expert trajectories using trajectory matching.
 """
 
 from pathlib import Path
+import copy
 import sys
 
 import torch
@@ -14,7 +15,7 @@ from modules.base_utils.util import extract_toml, get_module_device, get_mtt_att
                                     needs_big_ims, slurmify_path, clf_loss, softmax,\
                                     total_mse_distance
 from modules.generate_labels.utils import coalesce_attack_config, extract_experts,\
-                                          extract_labels, sgd_step
+                                          extract_labels, sgd_step, DEFAULT_EXPERT_CONFIG
 
 
 def run(experiment_name, module_name, **kwargs):
@@ -30,8 +31,8 @@ def run(experiment_name, module_name, **kwargs):
 
     args = extract_toml(experiment_name, module_name)
 
-    input_pths = args["input_pths"]
-    opt_pths = args["opt_pths"]
+    input_pths = args.get("input_pths", None)
+    opt_pths = args.get("opt_pths", None)
     expert_model_flag = args["expert_model"]
     dataset_flag = args["dataset"]
     poisoner_flag = args["poisoner"]
@@ -62,24 +63,53 @@ def run(experiment_name, module_name, **kwargs):
     labels_init = torch.stack(extract_labels(mtt_dataset.distill, 1, n_classes))
     labels_syn = torch.stack(labels).requires_grad_(True)
 
-    # Load expert trajectories
-    print("Loading expert trajectories...")
-    expert_starts, expert_opt_starts = extract_experts(
-        expert_config,
-        input_pths,
-        config['iterations'],
-        expert_opt_path=opt_pths
-    )
+    # Expert starting points. Two sources:
+    #  - trajectories (input_pths / opt_pths given): checkpoints saved by train_expert;
+    #  - Frankenstein experts (no input_pths): expert k is the network rebuilt from the
+    #    checkpoint bank by expert_model.format(k) (e.g. "frank-{}"), used as is, with a
+    #    fresh optimizer state (no momentum). No expert training.
+    frank_experts = input_pths is None
+    if frank_experts:
+        if not expert_model_flag.startswith("frank-") or '{}' not in expert_model_flag:
+            raise ValueError("Without input_pths, expert_model must be 'frank-{}[-q<val>]'.")
+        n_experts = {**DEFAULT_EXPERT_CONFIG, **expert_config}['experts']
+        print(f"Using {n_experts} Frankenstein experts rebuilt from the checkpoint bank...")
+        expert_ids = np.random.randint(n_experts, size=config['iterations']).tolist()
+    else:
+        print("Loading expert trajectories...")
+        expert_starts, expert_opt_starts, expert_ids = extract_experts(
+            expert_config,
+            input_pths,
+            config['iterations'],
+            expert_opt_path=opt_pths
+        )
 
     # Optimize labels
     print("Training...")
 
-    student_model = load_model(expert_model_flag, n_classes)
-    expert_model = load_model(expert_model_flag, n_classes)
+    # expert_model may contain '{}', formatted with the expert index, so that experts of
+    # different architectures (e.g. Frankenstein ensembles "frank-{}") can be mixed.
+    def expert_flag(expert_id):
+        return expert_model_flag.format(expert_id) if '{}' in expert_model_flag else expert_model_flag
 
+    models = {}
+
+    def get_models(flag):
+        """(student, expert, expert optimizer, initial state_dict, fresh optimizer state)
+        for an architecture flag, built once. The initial state_dict is the starting point
+        of a Frankenstein expert (load_model is deterministic for a given flag)."""
+        if flag not in models:
+            student = load_model(flag, n_classes)
+            expert = load_model(flag, n_classes)
+            opt = torch.optim.SGD(expert.parameters(), **config['expert_kwargs'])
+            start = {k: v.detach().clone() for k, v in expert.state_dict().items()}
+            models[flag] = (student, expert, opt, start, copy.deepcopy(opt.state_dict()))
+        return models[flag]
+
+    student_model, expert_model = get_models(expert_flag(expert_ids[0]))[:2]
     device = get_module_device(student_model)
 
-    batch_size, epochs, optimizer_expert, optimizer_labels = get_mtt_attack_info(
+    batch_size, epochs, _, optimizer_labels = get_mtt_attack_info(
         expert_model.parameters(),
         labels_syn,
         config['expert_kwargs'],
@@ -100,13 +130,20 @@ def run(experiment_name, module_name, **kwargs):
                 x_t, y_t, x_d, y_d = x_t.to(device), y_t.to(device), x_d.to(device), y_d.to(device)
 
                 # Load parameters
-                checkpoint = torch.load(expert_starts[i])
+                student_model, expert_model, optimizer_expert, start, fresh_opt =\
+                    get_models(expert_flag(expert_ids[i]))
+                if frank_experts:
+                    checkpoint, state_dict = start, copy.deepcopy(fresh_opt)
+                else:
+                    checkpoint = torch.load(expert_starts[i])
+                    state_dict = torch.load(expert_opt_starts[i])
                 expert_model.load_state_dict(checkpoint)
                 student_model.load_state_dict({k: v.clone() for k, v in checkpoint.items()})
                 expert_start = [v.clone() for v in expert_model.parameters()]
 
-                optimizer_expert.load_state_dict(torch.load(expert_opt_starts[i]))
-                state_dict = torch.load(expert_opt_starts[i])
+                optimizer_expert.load_state_dict(copy.deepcopy(state_dict))
+                # per-parameter optimizer state, empty when it has none yet (fresh optimizer)
+                param_states = [state_dict['state'].get(j, {}) for j in range(len(expert_start))]
 
                 # Take a single expert / poison step
                 expert_model.train()
@@ -131,7 +168,7 @@ def run(experiment_name, module_name, **kwargs):
                                                                  student_model.parameters(),
                                                                  expert_model.parameters(),
                                                                  grads,
-                                                                 state_dict['state'].values()):
+                                                                 param_states):
                     student_update = sgd_step(student, grad, state, state_dict['param_groups'][0])
 
                     param_loss += total_mse_distance(student_update, expert)

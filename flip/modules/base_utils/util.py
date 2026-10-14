@@ -46,6 +46,8 @@ DEFAULT_ADAM_SCHED_KWARGS = {
 }
 
 BIG_IMS_MODELS = ['vgg', 'vgg-pretrain', 'vit-pretrain']
+# architectures of the Frankenstein package (CIFAR-10 only); "frank-<seed>[-q<val>]" too
+PROJECT_NAMED = ['V1', 'V2', 'V3', 'A', 'B']
 
 
 def generate_full_path(path):
@@ -112,6 +114,10 @@ def load_model(model_flag, num_classes=10):
             if 'head' not in name:
                 param.requires_grad=False
         return model.cuda()
+    elif model_flag in PROJECT_NAMED or model_flag.startswith("frank-"):
+        from modules.base_utils.model.frankenstein import load_project_model
+        from modules.base_utils.datasets import CIFAR_TRANSFORM_NORMALIZE_STD
+        return load_project_model(model_flag, CIFAR_TRANSFORM_NORMALIZE_STD).cuda()
     else:
         raise NotImplementedError
 

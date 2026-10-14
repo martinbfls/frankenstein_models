@@ -1,5 +1,10 @@
 # RESULTS
 
+> **Historique.** Le code de l'étude 1 (QP jouet E0-E3) et du pilote P0 a été supprimé ; voir `README.md`
+> pour le protocole actuel. Les chiffres « chimère » ci-dessous ont été obtenus avec l'ancien
+> générateur (raccourci ResNet mis à zéro dans les blocs non hérités, correspondances de canaux
+> incohérentes, stem jamais hérité) et ne sont pas comparables aux nouveaux résultats.
+
 Hypothesis under test: solving the gradient-matching QP on random **chimera** surrogate
 models (bank checkpoints of known architectures + Rademacher fill) yields a solution `w`
 (over the 90 class-pairs) that stays good on a victim of **unknown** architecture, because

@@ -1,15 +1,29 @@
 """Train the bank (A, B) and the victims (V1, V2, V3). 3 seeds each, 15 epochs,
-SGD, a checkpoint saved after every epoch. Run: python train_bank.py [which]
-where which in {bank, victims, all} (default all)."""
+SGD, a checkpoint saved after every epoch.
+Run from the repository root: python -m frankenstein.train_bank [bank|victims|all]."""
 
 import os
 import sys
 import torch
 import torch.nn as nn
+import torchvision
+import torchvision.transforms as T
 
-import config as C
-import data as D
-import models as M
+from . import config as C
+from . import models as M
+
+
+def get_loaders(batch_size=C.BATCH_SIZE):
+    norm = [T.ToTensor(), T.Normalize(C.CIFAR_MEAN, C.CIFAR_STD)]
+    train = torchvision.datasets.CIFAR10(
+        C.DATA_DIR, train=True, download=True,
+        transform=T.Compose([T.RandomCrop(32, padding=4), T.RandomHorizontalFlip()] + norm))
+    test = torchvision.datasets.CIFAR10(C.DATA_DIR, train=False, download=True,
+                                        transform=T.Compose(norm))
+    tl = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True,
+                                     num_workers=4, drop_last=True)
+    vl = torch.utils.data.DataLoader(test, batch_size=256, shuffle=False, num_workers=4)
+    return tl, vl
 
 
 def set_seed(s):
@@ -53,7 +67,7 @@ def train_one(name, arch, seed, train_loader, test_loader):
 
 def main():
     which = sys.argv[1] if len(sys.argv) > 1 else "all"
-    train_loader, test_loader = D.get_loaders()
+    train_loader, test_loader = get_loaders()
     groups = {}
     if which in ("bank", "all"):
         groups.update(C.BANK_ARCHS)

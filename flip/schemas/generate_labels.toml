@@ -5,10 +5,8 @@
 ###
 
 [generate_labels]
-input_pths = "string. Format string path to model checkpoint .pth files with three '{}'s."
-opt_pths = "string. Format string path to optimizer checkpoint .pth files with three '{}'s."
 output_dir = "string. Path to output directory (slurm compatible)."
-expert_model = "string: {r32p, r18, r18_tin, vgg, vgg_pretrain, vit_pretrain}. For ResNets, VGG-19s, and ViTs."
+expert_model = "string: {r32p, r18, r18_tin, vgg, vgg_pretrain, vit_pretrain, V1, V2, V3, A, B, frank-<seed>[-q<val>]}. May contain '{}', formatted with the expert index (e.g. frank-{} for an ensemble of Frankenstein experts)."
 dataset = "string: {cifar, cifar_100, tiny_imagenet}. For CIFAR-10, CIFAR-100 and Tiny Imagenet datasets."
 trainer = "string: {sgd, adam}. Specifies optimizer."
 source_label = "int: {-1,0,...,9}. Specifies label to mimic. -1 indicates all labels."
@@ -16,6 +14,8 @@ target_label = "int: {0,1,...,9}. Specifies label to attack."
 poisoner = "string: Form: {{1,2,3,9}xp, {1,2}xs, {1,4}xl}. Integer resembles number of attacks and string represents type."
 
 [OPTIONAL]
+input_pths = "string. Format string path to model checkpoint .pth files with three '{}'s. If omitted, expert_model must be 'frank-{}[-q<val>]': expert k is the Frankenstein network frank-k rebuilt from the checkpoint bank, used as starting point without training (expert_config.experts = number of experts)."
+opt_pths = "string. Format string path to optimizer checkpoint .pth files with three '{}'s. Required with input_pths."
 batch_size = "int: {0,1,...,infty}. Specifies batch size. Set to default for trainer if omitted."
 epochs = "int: {0,1,...,infty}. Specifies number of epochs. Set to default for trainer if omitted."
 train_pct = "float: [0, 1]. Specifies percentage of dataset available to attacker. Set to 1 by default."

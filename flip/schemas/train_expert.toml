@@ -6,7 +6,7 @@
 
 [train_expert]
 output_dir = "string. Path to output directory (slurm compatible)."
-model = "string: {r32p, r18, r18_tin, vgg, vgg_pretrain, vit_pretrain}. For ResNets, VGG-19s, and ViTs."
+model = "string: {r32p, r18, r18_tin, vgg, vgg_pretrain, vit_pretrain, V1, V2, V3, A, B, frank-<seed>[-q<val>]}. For ResNets, VGG-19s, ViTs, and the Frankenstein package (frank-*: initial weights reassembled from the bank)."
 dataset = "string: {cifar, cifar_100, tiny_imagenet}. For CIFAR-10, CIFAR-100 and Tiny Imagenet datasets."
 trainer = "string: {sgd, adam}. Specifies optimizer."
 source_label = "int: {-1,0,...,9}. Specifies label to mimic. -1 indicates all labels."

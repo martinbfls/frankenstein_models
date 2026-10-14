@@ -80,6 +80,13 @@ def options():
     parser.add_argument('--vruns', default=1, type=int, help='How often to re-initialize and check target after retraining')
     parser.add_argument('--vnet', default=None, type=lambda s: [str(item) for item in s.split(',')], help='Evaluate poison on this victim model. Defaults to --net')
     parser.add_argument('--retrain_from_init', action='store_true', help='Additionally evaluate by retraining on the same model initialization.')
+    parser.add_argument('--align_epochs', default='15', type=lambda s: [int(item) for item in s.split(',')],
+                        help='Epochs of the clean victim checkpoints (checkpoints/<vnet>_s<seed>_e<epoch>.pt) on which '
+                             'cos(poison grad, target grad) is measured after brewing. Empty-matching names are skipped.')
+
+    # Frankenstein surrogates
+    parser.add_argument('--skip_clean_training', action='store_true',
+                        help='Brew directly on the initial weights (Frankenstein surrogates inherit them from the bank).')
 
     # Optimization setup
     parser.add_argument('--pretrained', action='store_true', help='Load pretrained models from torchvision, if possible [only valid for ImageNet].')

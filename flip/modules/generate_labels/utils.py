@@ -31,19 +31,21 @@ def extract_experts(
     iterations=None,
     expert_opt_path=None
 ):
-    '''Extracts a list of expert checkpoints for the attack'''
+    '''Extracts a list of expert checkpoints for the attack, and the expert index of each'''
     config = {**DEFAULT_EXPERT_CONFIG, **expert_config}
     expert_starts = []
     expert_opt_starts = []
+    expert_ids = []
 
     for _ in range(iterations or DEFAULT_ATTACK_ITERATIONS):
         for s in config['trajectories']:
             expert = np.random.randint(config['experts'])
             trajectory = np.random.randint(config['min'], config['max']) + 1
             expert_starts.append(expert_path.format(expert, trajectory, str(s)))
+            expert_ids.append(expert)
             if expert_path:
                 expert_opt_starts.append(expert_opt_path.format(expert, trajectory, str(s)))
-    return expert_starts, expert_opt_starts
+    return expert_starts, expert_opt_starts, expert_ids
 
 
 def sgd_step(params, grad, opt_state, opt_params):
