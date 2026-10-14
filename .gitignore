@@ -1,0 +1,14 @@
+# data, checkpoints and caches (regenerable, ~1.5 GB)
+data/
+checkpoints/
+stats_cache/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# run logs
+*.log
+
+# FLIP outputs
+flip/out/
+flip/data/
