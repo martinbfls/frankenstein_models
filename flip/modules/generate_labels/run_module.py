@@ -49,6 +49,7 @@ def run(experiment_name, module_name, **kwargs):
 
     # Build datasets and initialize labels
     print("Building datasets...")
+    n_classes = get_n_classes(dataset_flag)
     poisoner = pick_poisoner(poisoner_flag,
                              dataset_flag,
                              target_label)
@@ -72,7 +73,6 @@ def run(experiment_name, module_name, **kwargs):
 
     # Optimize labels
     print("Training...")
-    n_classes = get_n_classes(dataset_flag)
 
     student_model = load_model(expert_model_flag, n_classes)
     expert_model = load_model(expert_model_flag, n_classes)

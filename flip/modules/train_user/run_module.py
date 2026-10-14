@@ -37,7 +37,7 @@ def run(experiment_name, module_name, **kwargs):
     epochs = args.get("epochs", None)
     optim_kwargs = args.get("optim_kwargs", {})
     scheduler_kwargs = args.get("scheduler_kwargs", {})
-    alpha = args.get("alpha", None)
+    alpha = args.get("alpha", 0.0)
 
     input_path = slurmify_path(args["input_labels"], slurm_id)
     true_path = slurmify_path(args.get("true_labels", None), slurm_id)
