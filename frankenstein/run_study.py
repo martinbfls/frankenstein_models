@@ -79,6 +79,8 @@ def parse():
     p.add_argument("--attackiter", type=int, default=C.RUN_DEFAULTS["attackiter"])
     p.add_argument("--budget", type=float, default=0.01, help="Witches poison fraction")
     p.add_argument("--eps", type=float, default=16)
+    p.add_argument("--pbatch", type=int, default=512,
+                   help="Witches poison batch size; halved automatically (down to 64) when a brew runs out of GPU memory")
     p.add_argument("--epochs", type=int, default=C.TRAIN_EPOCHS, help="victim retraining epochs (both attacks)")
     p.add_argument("--no-asr", action="store_true", help="Witches: cosine only, no victim retraining")
     p.add_argument("--flip-budget", type=int, default=C.RUN_DEFAULTS["flip_budget"])
@@ -187,7 +189,7 @@ def touch(path, dry=False):
 
 
 # parameters that change the results: a resumed run must use the same ones
-RESULT_ARGS = ("keys", "K", "restarts", "attackiter", "budget", "eps", "epochs", "no_asr",
+RESULT_ARGS = ("keys", "K", "restarts", "attackiter", "budget", "eps", "pbatch", "epochs", "no_asr",
                "flip_budget", "flip_iterations")
 
 
@@ -262,8 +264,25 @@ def step_witches(args):
                    "--align_epochs", str(C.TRAIN_EPOCHS),
                    "--table_path", os.path.join(wdir, "tables", arm) + "/", "--name", f"_{arm}",
                    "--delta_cache", delta, "--resume"]
-            if run(cmd, WITCHES, os.path.join(wdir, "logs", tag + ".log"), args.dry_run, kind="brew"):
-                touch(done, args.dry_run)
+            log = os.path.join(wdir, "logs", tag + ".log")
+            pbatch = args.pbatch
+            while True:
+                # the poison batch is the main memory knob (double backprop through the surrogate);
+                # tau scales with pbatch inside the attack, so a smaller batch keeps the same objective
+                if run(cmd + ["--pbatch", str(pbatch)], WITCHES, log, args.dry_run, kind="brew"):
+                    touch(done, args.dry_run)
+                    break
+                if args.dry_run or pbatch <= 64 or not _ran_out_of_memory(log):
+                    break
+                pbatch //= 2
+                print("    out of GPU memory -> retrying with --pbatch %d" % pbatch)
+
+
+def _ran_out_of_memory(log):
+    with open(log, "rb") as f:
+        f.seek(0, os.SEEK_END)
+        f.seek(max(0, f.tell() - 20000))
+        return b"out of memory" in f.read().lower()
 
 
 def load_witches(out):
