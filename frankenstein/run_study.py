@@ -39,7 +39,22 @@ import time
 
 import numpy as np
 
-from . import config as C
+
+def _early_env():
+    """--device / --profile must reach frankenstein.config (and the subprocesses, through the
+    environment) before it is imported."""
+    e = argparse.ArgumentParser(add_help=False)
+    e.add_argument("--device", choices=["cuda", "mps", "cpu"])
+    e.add_argument("--profile", choices=["full", "mac"])
+    known, _ = e.parse_known_args()
+    if known.device:
+        os.environ["FRANK_DEVICE"] = known.device
+    if known.profile:
+        os.environ["FRANK_PROFILE"] = known.profile
+
+
+_early_env()
+from . import config as C  # noqa: E402
 
 ROOT = C.ROOT
 WITCHES = os.path.join(ROOT, "witches")
@@ -53,6 +68,9 @@ ARM_LABELS = {"whitebox": "White-box", "frank": "Frankenstein", "frank_q0": "Fra
 def parse():
     print("profile=%s device=%s checkpoints=%s" % (C.PROFILE, C.DEVICE, os.path.relpath(C.CKPT_DIR, ROOT)))
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--device", choices=["cuda", "mps", "cpu"], help="default: cuda > mps > cpu")
+    p.add_argument("--profile", choices=["full", "mac"],
+                   help="full = cluster-sized study (default on CUDA), mac = small networks (default on MPS)")
     p.add_argument("--out", default=C.RESULTS_DIR)
     p.add_argument("--attacks", default="witches,flip", help="comma list among witches,flip")
     p.add_argument("--keys", type=int, default=C.RUN_DEFAULTS["keys"], help="Witches poison keys (one target each), 1..keys")
@@ -71,9 +89,80 @@ def parse():
     return p.parse_args()
 
 
+# ----------------------------------------------------------------------------- progress / ETA
+def fmt_time(sec):
+    sec = int(sec)
+    return "%dh%02d" % (sec // 3600, sec % 3600 // 60) if sec >= 3600 else "%dmin%02ds" % (sec // 60, sec % 60)
+
+
+class Progress:
+    """Counts the units still to do per kind and estimates the remaining time from the mean
+    duration of finished units of the same kind. Durations are kept in progress.json, so the
+    estimate is available right away when a campaign is resumed. Kinds never timed (first
+    run) are left out of the estimate, which is then marked as a lower bound."""
+
+    def __init__(self):
+        self.pending, self.hist, self.path = {}, {}, None
+        self.total = self.done = 0
+        self.t0 = time.time()
+
+    def start(self, out, pending, dry):
+        self.path = None if dry else os.path.join(out, "progress.json")
+        self.pending, self.total, self.t0 = dict(pending), sum(pending.values()), time.time()
+        if self.path and os.path.exists(self.path):
+            with open(self.path) as f:
+                self.hist = json.load(f)
+
+    def eta(self):
+        known = sum(n * np.mean(self.hist[k]) for k, n in self.pending.items() if self.hist.get(k))
+        unknown = sorted(k for k, n in self.pending.items() if n and not self.hist.get(k))
+        return known, unknown
+
+    def finished(self, kind, dt):
+        self.hist.setdefault(kind, []).append(dt)
+        if self.path:
+            with open(self.path, "w") as f:
+                json.dump(self.hist, f)
+        self.pending[kind] = max(0, self.pending.get(kind, 0) - 1)
+        self.done += 1
+        known, unknown = self.eta()
+        print("    [%d/%d units] elapsed %s | remaining ~%s%s" % (
+            self.done, self.total, fmt_time(time.time() - self.t0), fmt_time(known),
+            " (lower bound, not timed yet: %s)" % ", ".join(unknown) if unknown else ""))
+
+
+PROGRESS = Progress()
+
+
+def count_pending(args, attacks):
+    """Units not yet done, per kind (same done markers as the steps themselves)."""
+    n = {}
+    if any(not os.path.exists(os.path.join(C.CKPT_DIR, f"{a}_s{s}_e{C.TRAIN_EPOCHS}.pt"))
+           for a in list(C.BANK_ARCHS) + VICTIMS for s in C.TRAIN_SEEDS):
+        n["train_bank"] = 1
+    if "witches" in attacks:
+        wdone = os.path.join(args.out, "witches", "done")
+        for key in range(1, args.keys + 1):
+            for arm, _, victims in witches_runs(args):
+                tag = f"{arm}_{'-'.join(victims)}_k{key}" if arm == "whitebox" else f"{arm}_k{key}"
+                if not os.path.exists(os.path.join(wdone, tag)):
+                    n["brew"] = n.get("brew", 0) + 1
+    if "flip" in attacks:
+        fdone = os.path.join(args.out, "flip", "done")
+        for arm, spec in FLIP_ARMS.items():
+            victims = spec(args)[2]
+            for kind, name in (("flip_labels", arm + "_labels"), ("flip_select", arm + "_select")):
+                if not os.path.exists(os.path.join(fdone, name)):
+                    n[kind] = n.get(kind, 0) + 1
+            for v in victims:
+                if not os.path.exists(os.path.join(fdone, f"{arm}_user_{v}")):
+                    n["flip_user"] = n.get("flip_user", 0) + 1
+    return n
+
+
 # ----------------------------------------------------------------------------- execution helpers
-def run(cmd, cwd, log, dry):
-    """Run cmd, stdout+stderr to log. Returns True on success."""
+def run(cmd, cwd, log, dry, kind=None):
+    """Run cmd, stdout+stderr to log. Returns True on success. kind: unit type for the ETA."""
     print("  $ (cd %s && %s)" % (os.path.relpath(cwd, ROOT) or ".", " ".join(cmd)))
     if dry:
         return True
@@ -85,6 +174,8 @@ def run(cmd, cwd, log, dry):
         rc = subprocess.call(cmd, cwd=cwd, stdout=f, stderr=subprocess.STDOUT)
     print("    -> %s in %.1f min (log %s)" % ("ok" if rc == 0 else "FAILED rc=%d" % rc,
                                              (time.time() - t0) / 60, os.path.relpath(log, ROOT)))
+    if rc == 0 and kind:
+        PROGRESS.finished(kind, time.time() - t0)
     return rc == 0
 
 
@@ -124,7 +215,7 @@ def step0(args):
     print("[0] checkpoints: %s" % ("all present" if not missing else "missing %s" % missing))
     logs = os.path.join(args.out, "logs")
     if missing and not run([sys.executable, "-m", "frankenstein.train_bank", "all"], ROOT,
-                           os.path.join(logs, "train_bank.log"), args.dry_run):
+                           os.path.join(logs, "train_bank.log"), args.dry_run, kind="train_bank"):
         sys.exit("train_bank failed")
     marker = os.path.join(args.out, "done", "check_generator")
     if os.path.exists(marker):
@@ -171,7 +262,7 @@ def step_witches(args):
                    "--align_epochs", str(C.TRAIN_EPOCHS),
                    "--table_path", os.path.join(wdir, "tables", arm) + "/", "--name", f"_{arm}",
                    "--delta_cache", delta, "--resume"]
-            if run(cmd, WITCHES, os.path.join(wdir, "logs", tag + ".log"), args.dry_run):
+            if run(cmd, WITCHES, os.path.join(wdir, "logs", tag + ".log"), args.dry_run, kind="brew"):
                 touch(done, args.dry_run)
 
 
@@ -242,7 +333,7 @@ iterations = {args.flip_iterations}
 one_hot_temp = 5
 labels_kwargs = {{lr = 150, momentum = 0.5}}
 """, args.dry_run)
-            if not run([sys.executable, "run_experiment.py", rel(adir)], FLIP, adir + "labels.log", args.dry_run):
+            if not run([sys.executable, "run_experiment.py", rel(adir)], FLIP, adir + "labels.log", args.dry_run, kind="flip_labels"):
                 continue
             touch(done(arm + "_labels"), args.dry_run)
 
@@ -255,7 +346,7 @@ input_label_glob = "{adir}labels.npy"
 true_labels = "{adir}true.npy"
 output_dir = "{adir}"
 """, args.dry_run)
-            if not run([sys.executable, "run_experiment.py", rel(sdir)], FLIP, sdir + "select.log", args.dry_run):
+            if not run([sys.executable, "run_experiment.py", rel(sdir)], FLIP, sdir + "select.log", args.dry_run, kind="flip_select"):
                 continue
             touch(done(arm + "_select"), args.dry_run)
 
@@ -274,7 +365,7 @@ alpha = 0.0
 epochs = {args.epochs}
 scheduler_kwargs = {{milestones = [{m1}, {m2}], gamma = 0.1}}
 """, args.dry_run)
-            if run([sys.executable, "run_experiment.py", rel(udir)], FLIP, udir + "train_user.log", args.dry_run):
+            if run([sys.executable, "run_experiment.py", rel(udir)], FLIP, udir + "train_user.log", args.dry_run, kind="flip_user"):
                 touch(done(f"{arm}_user_{v}"), args.dry_run)
 
 
@@ -466,8 +557,15 @@ def main():
     args = parse()
     os.makedirs(args.out, exist_ok=True)
     attacks = set(args.attacks.split(","))
+    if args.device == "cuda":
+        import torch
+        if not torch.cuda.is_available():
+            sys.exit("--device cuda requested but CUDA is not available")
     if not args.plots_only:
         check_args(args)
+        pending = count_pending(args, attacks)
+        PROGRESS.start(args.out, pending, args.dry_run)
+        print("units to run: %s" % (", ".join("%s x%d" % kv for kv in pending.items()) or "none"))
         try:
             step0(args)
             if "witches" in attacks:

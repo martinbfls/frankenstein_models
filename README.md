@@ -23,6 +23,16 @@ Durées mesurées sur M4 Pro : banque + victimes ~20 min, un brew Witches + rée
 `FRANK_DEVICE=cpu|mps|cuda`, `FRANK_DATA_DIR`. Si le téléchargement de CIFAR-10 (serveur de Toronto)
 est très lent, placer `cifar-10-python.tar.gz` dans `data/`.
 
+## Campagne complète sur GPU (CUDA), en une commande
+```bash
+python -m frankenstein.run_study --device cuda     # profil `full` automatique sur CUDA : banque, victimes, Witches, FLIP, figures
+```
+Après chaque unité terminée, la commande affiche `[i/N units] elapsed … | remaining ~…` ; le temps
+restant est estimé à partir de la durée moyenne des unités déjà faites (conservée dans
+`results/*/progress.json`, donc disponible dès la reprise). Tant qu'un type d'unité n'a jamais été
+chronométré (premier lancement), l'estimation est une borne basse et le dit. `--device cpu|mps|cuda`
+et `--profile full|mac` remplacent `FRANK_DEVICE` / `FRANK_PROFILE`.
+
 ## Contenu
 - `frankenstein/` : config (banque A/B, victimes V1-V3), modèles, générateur (`chimera.py`),
   entraînement de la banque et des victimes (`train_bank.py`), auto-test du générateur (`check_generator.py`).
