@@ -1,0 +1,81 @@
+
+===== 2026-10-19 11:15:49 | /opt/python/bin/python brew_poison.py --net Frankenstein-q0 --ensemble 4 --vnet V1,V2,V3 --skip_clean_training --dataset CIFAR10 --data_path /home/onyxia/work/frankenstein_models/data --poisonkey 1 --modelkey 1 --budget 0.01 --eps 16 --restarts 4 --attackiter 250 --epochs 15 --batch_size 128 --vruns 1 --align_epochs 15 --table_path /home/onyxia/work/frankenstein_models/results/hypothesis/witches/tables/frank_q0/ --name _frank_q0 --delta_cache /home/onyxia/work/frankenstein_models/results/hypothesis/witches/deltas/frank_q0_k1.pt --resume
+Currently evaluating -------------------------------:
+Monday, 19. October 2026 11:15AM
+Namespace(net=['Frankenstein-q0'], dataset='CIFAR10', recipe='gradient-matching', threatmodel='single-class', poisonkey='1', modelkey=1, deterministic=False, eps=16.0, budget=0.01, targets=1, name='_frank_q0', table_path='/home/onyxia/work/frankenstein_models/results/hypothesis/witches/tables/frank_q0/', poison_path='poisons/', data_path='/home/onyxia/work/frankenstein_models/data', attackoptim='signAdam', attackiter=250, init='randn', tau=0.1, scheduling=True, target_criterion='cross-entropy', restarts=4, pbatch=512, pshuffle=False, paugment=True, data_aug='default', full_data=False, adversarial=0, ensemble=4, stagger=False, step=False, max_epoch=None, ablation=1.0, loss='similarity', centreg=0, normreg=0, repel=0, nadapt=2, clean_grad=False, vruns=1, vnet=['V1', 'V2', 'V3'], retrain_from_init=False, align_epochs=[15], delta_cache='/home/onyxia/work/frankenstein_models/results/hypothesis/witches/deltas/frank_q0_k1.pt', resume=True, skip_clean_training=True, pretrained=False, optimization='conservative', epochs=15, batch_size=128, noaugment=False, gradient_noise=None, gradient_clip=None, lmdb_path=None, cache_dataset=False, benchmark='', benchmark_idx=0, dryrun=False, save=None, local_rank=None)
+CPUs: 36, GPUs: 1 on vscode-pytorch-gpu-290881-0.
+GPU : Tesla T4
+Initializing ensemble from random key 1.
+Frankenstein-q0 seed 245121889: spec [{'family': 'convnext', 'width': 48, 'nblocks': 3}, {'family': 'convnext', 'width': 48, 'nblocks': 1}, {'family': 'resnet', 'width': 64, 'nblocks': 3}] | params 312202 | rho 0.000 | inherited blocks 0/7
+Frankenstein-q0 initialized as model 0
+Frankenstein-q0 seed 1044702472: spec [{'family': 'resnet', 'width': 32, 'nblocks': 2}, {'family': 'convnext', 'width': 32, 'nblocks': 2}, {'family': 'convnext', 'width': 96, 'nblocks': 4}] | params 323882 | rho 0.000 | inherited blocks 0/8
+Frankenstein-q0 initialized as model 1
+Frankenstein-q0 seed 721537263: spec [{'family': 'resnet', 'width': 24, 'nblocks': 3}, {'family': 'convnext', 'width': 64, 'nblocks': 4}, {'family': 'convnext', 'width': 96, 'nblocks': 3}] | params 374818 | rho 0.000 | inherited blocks 0/10
+Frankenstein-q0 initialized as model 2
+Frankenstein-q0 seed 1185722975: spec [{'family': 'convnext', 'width': 16, 'nblocks': 2}, {'family': 'resnet', 'width': 64, 'nblocks': 2}, {'family': 'convnext', 'width': 96, 'nblocks': 3}] | params 348922 | rho 0.000 | inherited blocks 0/7
+Frankenstein-q0 initialized as model 3
+Data mean is [0.4914672374725342, 0.4822617471218109, 0.4467701315879822], 
+Data std  is [0.24703224003314972, 0.24348513782024384, 0.26158785820007324].
+Data is loaded with 4 workers.
+Initializing Poison data (chosen images, examples, targets, labels) with random seed 1
+Poisoning setup generated for threat model single-class and budget of 1.0% - 500 images:
+--Target images drawn from class cat with ids [874].
+--Target images assigned intended class horse.
+--Poison images drawn from class horse.
+Frankenstein BN statistics recalibrated on clean training data.
+Frankenstein BN statistics recalibrated on clean training data.
+Frankenstein BN statistics recalibrated on clean training data.
+Frankenstein BN statistics recalibrated on clean training data.
+Skipping clean training, brewing on the initial weights...
+Starting brewing procedure ...
+Target Grad Norm is [tensor(27.9825, device='cuda:0'), tensor(16.1937, device='cuda:0'), tensor(25.2856, device='cuda:0'), tensor(17.4541, device='cuda:0')]
+[W1019 11:16:05.656370239 CUDACachingAllocator.cpp:3934] memory allocation failed with OOM on device 0 while trying to allocate 394264576 bytes (free: 111607808, total: 15652421632).
+[W1019 11:16:05.705424657 CUDACachingAllocator.cpp:3934] memory allocation failed with OOM on device 0 while trying to allocate 394264576 bytes (free: 13041664, total: 15652421632).
+[W1019 11:16:05.705613241 CUDACachingAllocator.cpp:3934] memory allocation failed with OOM on device 0 while trying to allocate 394264576 bytes (free: 13041664, total: 15652421632).
+Traceback (most recent call last):
+  File "/home/onyxia/work/frankenstein_models/witches/brew_poison.py", line 59, in <module>
+    poison_delta = witch.brew(model, data)
+  File "/home/onyxia/work/frankenstein_models/witches/forest/witchcoven/witch_base.py", line 42, in brew
+    poison_delta = self._brew(victim, kettle)
+  File "/home/onyxia/work/frankenstein_models/witches/forest/witchcoven/witch_base.py", line 65, in _brew
+    poison_delta, target_losses = self._run_trial(victim, kettle)
+                                  ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/onyxia/work/frankenstein_models/witches/forest/witchcoven/witch_base.py", line 150, in _run_trial
+    loss, prediction = self._batched_step(poison_delta, poison_bounds, example, victim, kettle)
+                       ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/onyxia/work/frankenstein_models/witches/forest/witchcoven/witch_base.py", line 228, in _batched_step
+    loss, prediction = victim.compute(closure, self.target_grad, self.target_clean_grad,
+                       ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                      self.target_gnorm)
+                                      ^^^^^^^^^^^^^^^^^^
+  File "/home/onyxia/work/frankenstein_models/witches/forest/victims/victim_ensemble.py", line 180, in compute
+    outputs.append(function(model, criterion, optimizer, *single_arg))
+                   ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/onyxia/work/frankenstein_models/witches/forest/witchcoven/witch_matching.py", line 37, in closure
+    passenger_loss.backward(retain_graph=self.retain)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/python/lib/python3.13/site-packages/torch/_tensor.py", line 623, in backward
+    torch.autograd.backward(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        self, gradient, retain_graph, create_graph, inputs=inputs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/python/lib/python3.13/site-packages/torch/autograd/__init__.py", line 395, in backward
+    _engine_run_backward(
+    ~~~~~~~~~~~~~~~~~~~~^
+        tensors,
+        ^^^^^^^^
+    ...<5 lines>...
+        accumulate_grad=True,
+        ^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/python/lib/python3.13/site-packages/torch/autograd/graph.py", line 1072, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        t_outputs, *args, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )  # Calls into the C++ engine to run the backward pass
+    ^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 376.00 MiB. GPU 0 has a total capacity of 14.58 GiB of which 12.44 MiB is free. Including non-PyTorch memory, this process has 14.56 GiB memory in use. Of the allocated memory 14.38 GiB is allocated by PyTorch, and 41.45 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)

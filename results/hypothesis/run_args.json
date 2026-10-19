@@ -1,0 +1,12 @@
+{
+ "keys": 4,
+ "K": 4,
+ "restarts": 4,
+ "attackiter": 250,
+ "budget": 0.01,
+ "eps": 16,
+ "epochs": 15,
+ "no_asr": false,
+ "flip_budget": 1500,
+ "flip_iterations": 5
+}

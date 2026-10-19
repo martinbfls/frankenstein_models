@@ -1,0 +1,22 @@
+
+===== 2026-10-19 17:17:54 | /opt/python/bin/python brew_poison.py --net V2-s0 --ensemble 1 --vnet V2 --skip_clean_training --dataset CIFAR10 --data_path /home/onyxia/work/frankenstein_models/data --poisonkey 2 --modelkey 2 --budget 0.01 --eps 16 --restarts 4 --attackiter 250 --epochs 15 --batch_size 128 --vruns 1 --align_epochs 15 --table_path /home/onyxia/work/frankenstein_models/results/hypothesis/witches/tables/whitebox/ --name _whitebox --delta_cache /home/onyxia/work/frankenstein_models/results/hypothesis/witches/deltas/whitebox_V2_k2.pt --resume
+Currently evaluating -------------------------------:
+Monday, 19. October 2026 05:17PM
+Namespace(net=['V2-s0'], dataset='CIFAR10', recipe='gradient-matching', threatmodel='single-class', poisonkey='2', modelkey=2, deterministic=False, eps=16.0, budget=0.01, targets=1, name='_whitebox', table_path='/home/onyxia/work/frankenstein_models/results/hypothesis/witches/tables/whitebox/', poison_path='poisons/', data_path='/home/onyxia/work/frankenstein_models/data', attackoptim='signAdam', attackiter=250, init='randn', tau=0.1, scheduling=True, target_criterion='cross-entropy', restarts=4, pbatch=512, pshuffle=False, paugment=True, data_aug='default', full_data=False, adversarial=0, ensemble=1, stagger=False, step=False, max_epoch=None, ablation=1.0, loss='similarity', centreg=0, normreg=0, repel=0, nadapt=2, clean_grad=False, vruns=1, vnet=['V2'], retrain_from_init=False, align_epochs=[15], delta_cache='/home/onyxia/work/frankenstein_models/results/hypothesis/witches/deltas/whitebox_V2_k2.pt', resume=True, skip_clean_training=True, pretrained=False, optimization='conservative', epochs=15, batch_size=128, noaugment=False, gradient_noise=None, gradient_clip=None, lmdb_path=None, cache_dataset=False, benchmark='', benchmark_idx=0, dryrun=False, save=None, local_rank=None)
+CPUs: 36, GPUs: 1 on vscode-pytorch-gpu-290881-0.
+GPU : Tesla T4
+V2-s0: loaded checkpoint V2_s0_e15
+V2-s0 model initialized with random key 2.
+Data mean is [0.4914672374725342, 0.4822617471218109, 0.4467701315879822], 
+Data std  is [0.24703224003314972, 0.24348513782024384, 0.26158785820007324].
+Data is loaded with 4 workers.
+Initializing Poison data (chosen images, examples, targets, labels) with random seed 2
+Poisoning setup generated for threat model single-class and budget of 1.0% - 500 images:
+--Target images drawn from class truck with ids [5308].
+--Target images assigned intended class cat.
+--Poison images drawn from class cat.
+Skipping clean training, brewing on the initial weights...
+Starting brewing procedure ...
+Target Grad Norm is 65.22227478027344
+Iteration 0: Target loss is 0.9817, Poison clean acc is 37.40%
+Iteration 50: Target loss is 0.0581, Poison clean acc is 56.60%

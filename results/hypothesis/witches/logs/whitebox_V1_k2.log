@@ -1,0 +1,76 @@
+
+===== 2026-10-19 16:47:13 | /opt/python/bin/python brew_poison.py --net V1-s0 --ensemble 1 --vnet V1 --skip_clean_training --dataset CIFAR10 --data_path /home/onyxia/work/frankenstein_models/data --poisonkey 2 --modelkey 2 --budget 0.01 --eps 16 --restarts 4 --attackiter 250 --epochs 15 --batch_size 128 --vruns 1 --align_epochs 15 --table_path /home/onyxia/work/frankenstein_models/results/hypothesis/witches/tables/whitebox/ --name _whitebox --delta_cache /home/onyxia/work/frankenstein_models/results/hypothesis/witches/deltas/whitebox_V1_k2.pt --resume
+Currently evaluating -------------------------------:
+Monday, 19. October 2026 04:47PM
+Namespace(net=['V1-s0'], dataset='CIFAR10', recipe='gradient-matching', threatmodel='single-class', poisonkey='2', modelkey=2, deterministic=False, eps=16.0, budget=0.01, targets=1, name='_whitebox', table_path='/home/onyxia/work/frankenstein_models/results/hypothesis/witches/tables/whitebox/', poison_path='poisons/', data_path='/home/onyxia/work/frankenstein_models/data', attackoptim='signAdam', attackiter=250, init='randn', tau=0.1, scheduling=True, target_criterion='cross-entropy', restarts=4, pbatch=512, pshuffle=False, paugment=True, data_aug='default', full_data=False, adversarial=0, ensemble=1, stagger=False, step=False, max_epoch=None, ablation=1.0, loss='similarity', centreg=0, normreg=0, repel=0, nadapt=2, clean_grad=False, vruns=1, vnet=['V1'], retrain_from_init=False, align_epochs=[15], delta_cache='/home/onyxia/work/frankenstein_models/results/hypothesis/witches/deltas/whitebox_V1_k2.pt', resume=True, skip_clean_training=True, pretrained=False, optimization='conservative', epochs=15, batch_size=128, noaugment=False, gradient_noise=None, gradient_clip=None, lmdb_path=None, cache_dataset=False, benchmark='', benchmark_idx=0, dryrun=False, save=None, local_rank=None)
+CPUs: 36, GPUs: 1 on vscode-pytorch-gpu-290881-0.
+GPU : Tesla T4
+V1-s0: loaded checkpoint V1_s0_e15
+V1-s0 model initialized with random key 2.
+Data mean is [0.4914672374725342, 0.4822617471218109, 0.4467701315879822], 
+Data std  is [0.24703224003314972, 0.24348513782024384, 0.26158785820007324].
+Data is loaded with 4 workers.
+Initializing Poison data (chosen images, examples, targets, labels) with random seed 2
+Poisoning setup generated for threat model single-class and budget of 1.0% - 500 images:
+--Target images drawn from class truck with ids [5308].
+--Target images assigned intended class cat.
+--Poison images drawn from class cat.
+Skipping clean training, brewing on the initial weights...
+Starting brewing procedure ...
+Target Grad Norm is 127.79193115234375
+Iteration 0: Target loss is 0.9539, Poison clean acc is 75.20%
+Iteration 50: Target loss is 0.1480, Poison clean acc is 89.40%
+Iteration 100: Target loss is 0.1606, Poison clean acc is 91.80%
+Iteration 150: Target loss is 0.1358, Poison clean acc is 92.40%
+Iteration 200: Target loss is 0.1337, Poison clean acc is 92.40%
+Iteration 249: Target loss is 0.1359, Poison clean acc is 92.40%
+Iteration 0: Target loss is 0.9466, Poison clean acc is 75.40%
+Iteration 50: Target loss is 0.1651, Poison clean acc is 89.20%
+Iteration 100: Target loss is 0.1566, Poison clean acc is 92.20%
+Iteration 150: Target loss is 0.1424, Poison clean acc is 92.80%
+Iteration 200: Target loss is 0.1404, Poison clean acc is 92.80%
+Iteration 249: Target loss is 0.1523, Poison clean acc is 92.80%
+Iteration 0: Target loss is 0.9622, Poison clean acc is 77.20%
+Iteration 50: Target loss is 0.1543, Poison clean acc is 86.40%
+Iteration 100: Target loss is 0.1414, Poison clean acc is 89.60%
+Iteration 150: Target loss is 0.1532, Poison clean acc is 90.80%
+Iteration 200: Target loss is 0.1438, Poison clean acc is 91.20%
+Iteration 249: Target loss is 0.1286, Poison clean acc is 91.00%
+Iteration 0: Target loss is 0.9684, Poison clean acc is 75.80%
+Iteration 50: Target loss is 0.1490, Poison clean acc is 88.00%
+Iteration 100: Target loss is 0.1478, Poison clean acc is 91.00%
+Iteration 150: Target loss is 0.1253, Poison clean acc is 91.20%
+Iteration 200: Target loss is 0.1355, Poison clean acc is 91.40%
+Iteration 249: Target loss is 0.1336, Poison clean acc is 91.60%
+Poisons with minimal target loss 1.2863e-01 selected.
+Victim alignment V1_s1_e15: cos(poison, target) = 0.7525 (clean poisons: 0.1581)
+Victim alignment V1_s2_e15: cos(poison, target) = 0.7619 (clean poisons: 0.1236)
+V1 model initialized with random key 2.
+V1 model initialized with random key 2.
+Model reinitialized to random seed.
+Epoch: 0  | lr: 0.1000 | Training    loss is  1.7902, train acc:  33.07% | Validation   loss is  1.4811, valid acc:  45.32% | 
+Epoch: 0  | lr: 0.1000 | Target adv. loss is  3.2722, fool  acc:   0.00% | Target orig. loss is  1.5055, orig. acc: 100.00% | 
+Epoch: 1  | lr: 0.1000 | Training    loss is  1.3401, train acc:  51.32% | 
+Epoch: 2  | lr: 0.1000 | Training    loss is  1.0572, train acc:  62.48% | 
+Epoch: 3  | lr: 0.1000 | Training    loss is  0.8529, train acc:  70.32% | 
+Epoch: 4  | lr: 0.0100 | Training    loss is  0.7290, train acc:  74.61% | 
+Epoch: 5  | lr: 0.0100 | Training    loss is  0.5398, train acc:  81.37% | 
+Epoch: 6  | lr: 0.0100 | Training    loss is  0.4834, train acc:  83.42% | 
+Epoch: 7  | lr: 0.0100 | Training    loss is  0.4554, train acc:  84.31% | 
+Epoch: 8  | lr: 0.0010 | Training    loss is  0.4329, train acc:  85.05% | 
+Epoch: 9  | lr: 0.0010 | Training    loss is  0.3946, train acc:  86.55% | 
+Epoch: 10 | lr: 0.0010 | Training    loss is  0.3840, train acc:  86.71% | Validation   loss is  0.4690, valid acc:  84.09% | 
+Epoch: 10 | lr: 0.0010 | Target adv. loss is  4.4006, fool  acc:   0.00% | Target orig. loss is  0.0177, orig. acc: 100.00% | 
+Epoch: 11 | lr: 0.0010 | Training    loss is  0.3809, train acc:  87.04% | 
+Epoch: 12 | lr: 0.0001 | Training    loss is  0.3739, train acc:  87.17% | 
+Epoch: 13 | lr: 0.0001 | Training    loss is  0.3698, train acc:  87.38% | 
+Epoch: 14 | lr: 0.0001 | Training    loss is  0.3688, train acc:  87.38% | Validation   loss is  0.4624, valid acc:  84.66% | 
+Epoch: 14 | lr: 0.0001 | Target adv. loss is  4.6163, fool  acc:   0.00% | Target orig. loss is  0.0142, orig. acc: 100.00% | 
+
+Results saved to /home/onyxia/work/frankenstein_models/results/hypothesis/witches/tables/whitebox/table_V1-s0_single-class_whitebox.csv.
+Monday, 19. October 2026 05:17PM
+---------------------------------------------------
+Finished computations with train time: 0:00:00.000007
+--------------------------- brew time: 0:24:44.478699
+--------------------------- test time: 0:05:49.675845
+-------------Job finished.-------------------------

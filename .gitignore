@@ -1,7 +1,7 @@
 # data, checkpoints and caches (regenerable, ~1.5 GB)
-data/
-checkpoints/
-checkpoints_*/
+# data/
+# checkpoints/
+# checkpoints_*/
 .venv/
 stats_cache/
 __pycache__/
@@ -11,11 +11,14 @@ checkpoints_*/
 .venv/
 
 # run logs
-*.log
+# *.log
 
 # FLIP outputs
-flip/out/
-flip/data/
+# flip/out/
+# flip/data/
 
 # study outputs (frankenstein.run_study)
-results/
+# results/
+
+data/
+checkpoints/

@@ -1,0 +1,7 @@
+
+===== 2026-10-19 11:14:35 | /opt/python/bin/python -c import sys; from frankenstein import check_generator as c; sys.exit(0 if c.main() else 1)
+[check] donor epoch 15 | target N = 343186 | donor blocks {'resnet': 27, 'convnext': 18} | donor nets 6
+[check a] fwd+bwd OK | within N_tol 200/200 | rho mean 0.346 | N mean 341157 -> PASS
+[check b] identity reconstruction max|delta| = 0.00e+00 -> PASS
+[check c] BN recalibration -> PASS
+[check] ALL PASS
