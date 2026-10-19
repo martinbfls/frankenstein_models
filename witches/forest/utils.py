@@ -12,11 +12,14 @@ import random
 import numpy as np
 
 from .consts import NON_BLOCKING
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from frankenstein.config import DEVICE  # noqa: E402  (cuda > mps > cpu, FRANK_DEVICE to override)
 
 
 def system_startup(args=None, defs=None):
     """Decide and print GPU / CPU / hostname info."""
-    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device(DEVICE) if DEVICE != 'cuda' else torch.device('cuda:0')
     setup = dict(device=device, dtype=torch.float, non_blocking=NON_BLOCKING)
     print('Currently evaluating -------------------------------:')
     print(datetime.datetime.now().strftime("%A, %d. %B %Y %I:%M%p"))
@@ -150,7 +153,7 @@ def record_results(kettle, brewed_loss, results, args, defs, modelkey, extra_sta
                   target_clean_loss_rerun=_maybe(stats_rerun, 'target_losses_clean'),
                   target_clean_acc_rerun=_maybe(stats_rerun, 'target_accs_clean'),
 
-                  **extra_stats,
+                  **{k: v for k, v in extra_stats.items() if k != 'poisonkey'},
                   train_loss_reinit=_maybe(stats_results, 'train_losses'),
                   val_loss_reinit=_maybe(stats_results, 'valid_losses'),
                   train_acc_reinit=_maybe(stats_results, 'train_accs'),
@@ -163,7 +166,7 @@ def record_results(kettle, brewed_loss, results, args, defs, modelkey, extra_sta
                   val_loss_clean=_maybe(stats_clean, 'valid_losses'),
                   train_acc_clean=_maybe(stats_clean, 'train_accs'),
                   val_acc_clean=_maybe(stats_clean, 'valid_accs'),
-                  poisonkey=kettle.init_seed,
+                  poisonkey=extra_stats.get('poisonkey', kettle.init_seed),
                   modelkey=modelkey,
                   net=",".join(args.net),
                   vnet=",".join(args.vnet) if args.vnet is not None else '')
@@ -191,10 +194,12 @@ def automl_bridge(kettle, poison_delta, name, mode='poison-upload', dryrun=False
 def set_random_seed(seed=233):
     """233 = 144 + 89 is my favorite number."""
     torch.manual_seed(seed + 1)
-    torch.cuda.manual_seed(seed + 2)
-    torch.cuda.manual_seed_all(seed + 3)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed + 2)
+        torch.cuda.manual_seed_all(seed + 3)
     np.random.seed(seed + 4)
-    torch.cuda.manual_seed_all(seed + 5)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed + 5)
     random.seed(seed + 6)
 
 def set_deterministic():

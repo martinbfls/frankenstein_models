@@ -99,6 +99,7 @@ def options():
     parser.add_argument('--optimization', default='conservative', type=str, help='Optimization Strategy')
     # Strategy overrides:
     parser.add_argument('--epochs', default=None, type=int)
+    parser.add_argument('--batch_size', default=None, type=int, help='Override the strategy batch size (training of victims).')
     parser.add_argument('--noaugment', action='store_true', help='Do not use data augmentation during training.')
     parser.add_argument('--gradient_noise', default=None, type=float, help='Add custom gradient noise during training.')
     parser.add_argument('--gradient_clip', default=None, type=float, help='Add custom gradient clip during training.')

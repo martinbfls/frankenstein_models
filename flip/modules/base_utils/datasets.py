@@ -89,8 +89,20 @@ TINY_IMAGENET_TRANSFORM_TEST = transforms.Compose(
     ]
 )
 
+def _cifar_path():
+    """FLIP's own ./data/data_cifar10 if it exists (cluster layout), else the repository's
+    shared data folder (frankenstein.config.DATA_DIR), so CIFAR-10 is downloaded only once."""
+    local = Path("./data/data_cifar10")
+    if local.exists():
+        return local
+    import sys, os
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
+    from frankenstein.config import DATA_DIR
+    return Path(DATA_DIR)
+
+
 PATH = {
-    'cifar': Path("./data/data_cifar10"),
+    'cifar': _cifar_path(),
     'cifar_100': Path("./data/data_cifar100"),
     'tiny_imagenet': "/scr/tiny-imagenet-200"
 }
@@ -433,8 +445,8 @@ def make_dataloader(
         dataset,
         batch_size=batch_size,
         shuffle=shuffle,
-        num_workers=4,
-        pin_memory=True,
+        num_workers=4 if torch.cuda.is_available() else 0,
+        pin_memory=torch.cuda.is_available(),
         drop_last=drop_last,
     )
     return dataloader

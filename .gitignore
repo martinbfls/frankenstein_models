@@ -1,10 +1,14 @@
 # data, checkpoints and caches (regenerable, ~1.5 GB)
 data/
 checkpoints/
+checkpoints_*/
+.venv/
 stats_cache/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
+checkpoints_*/
+.venv/
 
 # run logs
 *.log

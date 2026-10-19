@@ -125,6 +125,9 @@ class Kettle():
 
     def get_num_workers(self):
         """Check devices and set an appropriate number of workers."""
+        if not torch.cuda.is_available():
+            print('Data is loaded in the main process (no CUDA: spawned workers are slow on macOS).')
+            return 0
         if torch.cuda.is_available():
             num_gpus = torch.cuda.device_count()
             max_num_workers = 4 * num_gpus

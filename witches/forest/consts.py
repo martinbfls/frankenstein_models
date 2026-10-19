@@ -1,10 +1,14 @@
 """Setup constants, ymmv."""
 
-PIN_MEMORY = True
+import torch
+import torch.multiprocessing
+
+PIN_MEMORY = torch.cuda.is_available()   # pinned memory is CUDA-only (warning on mps)
 NON_BLOCKING = True
-BENCHMARK = True
+BENCHMARK = torch.cuda.is_available()
 MAX_THREADING = 40
-SHARING_STRATEGY = 'file_descriptor'  # file_system or file_descriptor
+# file_system or file_descriptor; recent macOS builds of torch only offer file_system
+SHARING_STRATEGY = 'file_descriptor' if 'file_descriptor' in torch.multiprocessing.get_all_sharing_strategies() else 'file_system'
 
 DEBUG_TRAINING = False
 

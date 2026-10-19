@@ -157,11 +157,21 @@ def build_convnext(dims, depths, num_classes=10):
     return Net(stem, blk, meta, head, "convnext")
 
 
+class MaxPool2d(nn.MaxPool2d):
+    """nn.MaxPool2d whose backward is itself differentiable. Recent torch refuses a second
+    derivative through max_pool2d unless the indices are requested; Witches' Brew and FLIP
+    both differentiate through the gradient. No parameters: checkpoints are unaffected."""
+
+    def forward(self, x):
+        return F.max_pool2d(x, self.kernel_size, self.stride, self.padding, self.dilation,
+                            ceil_mode=self.ceil_mode, return_indices=True)[0]
+
+
 def build_vgg(cfg, num_classes=10):
     layers, in_ch = [], 3
     for v in cfg:
         if v == "M":
-            layers.append(nn.MaxPool2d(2, 2))
+            layers.append(MaxPool2d(2, 2))
         else:
             layers += [nn.Conv2d(in_ch, v, 3, 1, 1, bias=False),
                        nn.BatchNorm2d(v), nn.ReLU(inplace=True)]

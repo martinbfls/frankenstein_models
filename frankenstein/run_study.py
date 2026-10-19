@@ -51,19 +51,20 @@ ARM_LABELS = {"whitebox": "White-box", "frank": "Frankenstein", "frank_q0": "Fra
 
 
 def parse():
+    print("profile=%s device=%s checkpoints=%s" % (C.PROFILE, C.DEVICE, os.path.relpath(C.CKPT_DIR, ROOT)))
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--out", default=os.path.join(ROOT, "results", "hypothesis"))
+    p.add_argument("--out", default=C.RESULTS_DIR)
     p.add_argument("--attacks", default="witches,flip", help="comma list among witches,flip")
-    p.add_argument("--keys", type=int, default=4, help="Witches poison keys (one target each), 1..keys")
-    p.add_argument("--K", type=int, default=4, help="number of Frankenstein surrogates / experts")
-    p.add_argument("--restarts", type=int, default=4, help="Witches restarts (original: 8)")
-    p.add_argument("--attackiter", type=int, default=250)
+    p.add_argument("--keys", type=int, default=C.RUN_DEFAULTS["keys"], help="Witches poison keys (one target each), 1..keys")
+    p.add_argument("--K", type=int, default=C.RUN_DEFAULTS["K"], help="number of Frankenstein surrogates / experts")
+    p.add_argument("--restarts", type=int, default=C.RUN_DEFAULTS["restarts"], help="Witches restarts (original: 8)")
+    p.add_argument("--attackiter", type=int, default=C.RUN_DEFAULTS["attackiter"])
     p.add_argument("--budget", type=float, default=0.01, help="Witches poison fraction")
     p.add_argument("--eps", type=float, default=16)
     p.add_argument("--epochs", type=int, default=C.TRAIN_EPOCHS, help="victim retraining epochs (both attacks)")
     p.add_argument("--no-asr", action="store_true", help="Witches: cosine only, no victim retraining")
-    p.add_argument("--flip-budget", type=int, default=1500)
-    p.add_argument("--flip-iterations", type=int, default=5)
+    p.add_argument("--flip-budget", type=int, default=C.RUN_DEFAULTS["flip_budget"])
+    p.add_argument("--flip-iterations", type=int, default=C.RUN_DEFAULTS["flip_iterations"])
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--plots-only", action="store_true")
     p.add_argument("--force", action="store_true", help="resume even if the parameters differ from run_args.json")
@@ -166,7 +167,7 @@ def step_witches(args):
                    "--data_path", C.DATA_DIR, "--poisonkey", str(key), "--modelkey", str(key),
                    "--budget", str(args.budget), "--eps", str(args.eps),
                    "--restarts", str(args.restarts), "--attackiter", str(args.attackiter),
-                   "--epochs", str(args.epochs), "--vruns", "0" if args.no_asr else "1",
+                   "--epochs", str(args.epochs), "--batch_size", str(C.BATCH_SIZE), "--vruns", "0" if args.no_asr else "1",
                    "--align_epochs", str(C.TRAIN_EPOCHS),
                    "--table_path", os.path.join(wdir, "tables", arm) + "/", "--name", f"_{arm}",
                    "--delta_cache", delta, "--resume"]

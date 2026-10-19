@@ -17,7 +17,11 @@ from modules.base_utils.datasets import make_dataloader
 if torch.cuda.is_available():
     cudnn.benchmark = True
 
-default_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+import sys as _sys
+_sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
+from frankenstein.config import DEVICE as _DEVICE  # noqa: E402  (cuda > mps > cpu)
+
+default_device = torch.device("cuda:0" if _DEVICE == "cuda" else _DEVICE)
 
 DEFAULT_SGD_BATCH_SIZE = 256
 DEFAULT_SGD_EPOCHS = 200
@@ -79,12 +83,12 @@ def load_model(model_flag, num_classes=10):
     if model_flag == "r32p":
         import modules.base_utils.model.resnet as resnet
 
-        return SequentialImageNetworkMod(resnet.resnet32(num_classes)).cuda()
+        return SequentialImageNetworkMod(resnet.resnet32(num_classes)).to(default_device)
     elif model_flag == "r18":
         from pytorch_cifar.models import ResNet, BasicBlock        
         return SequentialImageNetwork(ResNet(BasicBlock,
                                              [2, 2, 2, 2],
-                                             num_classes)).cuda()
+                                             num_classes)).to(default_device)
     elif model_flag == "r18-tin":
         from pytorch_cifar.models import ResNet, BasicBlock
 
@@ -93,11 +97,11 @@ def load_model(model_flag, num_classes=10):
                                              num_classes))
         model[13] = torch.nn.Linear(2048, 200)
 
-        return model.cuda()
+        return model.to(default_device)
     elif model_flag == "vgg":
         from torchvision.models import vgg19_bn
         
-        return vgg19_bn(num_classes=num_classes).cuda()
+        return vgg19_bn(num_classes=num_classes).to(default_device)
     elif model_flag == "vgg-pretrain":
         from torchvision.models import vgg19_bn, VGG19_BN_Weights
         model = vgg19_bn(weights=VGG19_BN_Weights.DEFAULT)
@@ -106,7 +110,7 @@ def load_model(model_flag, num_classes=10):
             if 'classifier' not in name:
                 param.requires_grad=False
 
-        return model.cuda()
+        return model.to(default_device)
     elif model_flag == "vit-pretrain":
         from torchvision.models import vit_b_16, ViT_B_16_Weights
         model = vit_b_16(weights=ViT_B_16_Weights.DEFAULT)
@@ -114,11 +118,11 @@ def load_model(model_flag, num_classes=10):
         for name, param in model.named_parameters():
             if 'head' not in name:
                 param.requires_grad=False
-        return model.cuda()
+        return model.to(default_device)
     elif model_flag in PROJECT_NAMED or model_flag.startswith("frank-") or "-ckpt" in model_flag:
         from modules.base_utils.model.frankenstein import load_project_model
         from modules.base_utils.datasets import CIFAR_TRANSFORM_NORMALIZE_STD
-        return load_project_model(model_flag, CIFAR_TRANSFORM_NORMALIZE_STD).cuda()
+        return load_project_model(model_flag, CIFAR_TRANSFORM_NORMALIZE_STD).to(default_device)
     else:
         raise NotImplementedError
 

@@ -39,6 +39,8 @@ class Strategy:
         """Defaulted parameters. Apply overwrites from args."""
         if args.epochs is not None:
             self.epochs = args.epochs
+        if getattr(args, 'batch_size', None) is not None:
+            self.batch_size = args.batch_size
         if args.noaugment:
             self.augmentations = False
         else:

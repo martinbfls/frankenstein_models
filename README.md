@@ -6,6 +6,23 @@ et complétés par des poids aléatoires, transfère-t-elle vers une victime d'a
 On compare trois bras : architecture connue (white-box), Frankenstein, mauvaise architecture.
 Métriques : **ASR** et **similarité cosinus** entre le gradient des poisons et le gradient adverse.
 
+## Lancer en local sur Mac (puce Apple / MPS)
+Le device est choisi automatiquement (CUDA > MPS > CPU) et, sur MPS, le profil **`mac`** s'active :
+mêmes bras et même protocole, mais réseaux plus petits (`frankenstein/config.py`), 8 époques, batch 256,
+K=3, 2 clés Witches, 60 itérations de brew, 2 itérations FLIP. Checkpoints et résultats sont séparés
+du profil cluster : `checkpoints_mac/` et `results/hypothesis_mac/` (le profil `full` est inchangé).
+```bash
+uv venv --python 3.11 .venv && uv pip install --python .venv/bin/python torch torchvision numpy scipy pandas matplotlib toml tqdm pillow
+.venv/bin/python -m frankenstein.run_study --dry-run            # plan, n'exécute rien
+.venv/bin/python -m frankenstein.run_study                      # tout, reprenable (relancer la même commande)
+.venv/bin/python -m frankenstein.run_study --attacks witches --no-asr   # le plus léger : cosinus seul
+```
+Durées mesurées sur M4 Pro : banque + victimes ~20 min, un brew Witches + réentraînement d'une victime
+~5 min, une optimisation de labels FLIP ~5 min. Étude complète : de l'ordre de 2 h ; `--no-asr`,
+`--attacks witches|flip` ou `--keys 1` pour réduire. Variables : `FRANK_PROFILE=full|mac`,
+`FRANK_DEVICE=cpu|mps|cuda`, `FRANK_DATA_DIR`. Si le téléchargement de CIFAR-10 (serveur de Toronto)
+est très lent, placer `cifar-10-python.tar.gz` dans `data/`.
+
 ## Contenu
 - `frankenstein/` : config (banque A/B, victimes V1-V3), modèles, générateur (`chimera.py`),
   entraînement de la banque et des victimes (`train_bank.py`), auto-test du générateur (`check_generator.py`).

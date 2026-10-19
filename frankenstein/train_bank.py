@@ -2,6 +2,7 @@
 SGD, a checkpoint saved after every epoch.
 Run from the repository root: python -m frankenstein.train_bank [bank|victims|all]."""
 
+import gc
 import os
 import sys
 import torch
@@ -13,22 +14,56 @@ from . import config as C
 from . import models as M
 
 
+class DeviceLoader:
+    """CIFAR-10 held as normalised tensors on the training device, with the usual random
+    crop (pad 4) + horizontal flip done on the device. Same recipe as torchvision's
+    RandomCrop/RandomHorizontalFlip, without the per-image CPU cost (which dominates on a
+    laptop). Iterates (x, y) batches like a DataLoader."""
+
+    def __init__(self, x, y, batch_size, train):
+        self.x, self.y, self.bs, self.train = x, y, batch_size, train
+
+    def __len__(self):
+        n = len(self.x)
+        return n // self.bs if self.train else -(-n // self.bs)
+
+    def __iter__(self):
+        n, dev = len(self.x), self.x.device
+        if not self.train:
+            for i in range(0, n, self.bs):
+                yield self.x[i:i + self.bs], self.y[i:i + self.bs]
+            return
+        perm = torch.randperm(n, device=dev)
+        ar = torch.arange(32, device=dev)
+        for i in range(0, n - self.bs + 1, self.bs):       # drop_last
+            idx = perm[i:i + self.bs]
+            xb = torch.nn.functional.pad(self.x[idx], (4, 4, 4, 4))
+            dy, dx = (torch.randint(0, 9, (self.bs,), device=dev) for _ in range(2))
+            flip = torch.rand(self.bs, device=dev) < 0.5
+            iy = (ar[None] + dy[:, None])[:, None, :, None]
+            cols = torch.where(flip[:, None], 31 - ar[None], ar[None]) + dx[:, None]
+            ix = cols[:, None, None, :]
+            xb = xb[torch.arange(self.bs, device=dev)[:, None, None, None],
+                    torch.arange(3, device=dev)[None, :, None, None], iy, ix]
+            yield xb, self.y[idx]
+
+
 def get_loaders(batch_size=C.BATCH_SIZE):
-    norm = [T.ToTensor(), T.Normalize(C.CIFAR_MEAN, C.CIFAR_STD)]
-    train = torchvision.datasets.CIFAR10(
-        C.DATA_DIR, train=True, download=True,
-        transform=T.Compose([T.RandomCrop(32, padding=4), T.RandomHorizontalFlip()] + norm))
-    test = torchvision.datasets.CIFAR10(C.DATA_DIR, train=False, download=True,
-                                        transform=T.Compose(norm))
-    tl = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True,
-                                     num_workers=4, drop_last=True)
-    vl = torch.utils.data.DataLoader(test, batch_size=256, shuffle=False, num_workers=4)
-    return tl, vl
+    norm = T.Compose([T.ToTensor(), T.Normalize(C.CIFAR_MEAN, C.CIFAR_STD)])
+
+    def tensors(train):
+        ds = torchvision.datasets.CIFAR10(C.DATA_DIR, train=train, download=True, transform=norm)
+        x = torch.stack([ds[i][0] for i in range(len(ds))]).to(C.DEVICE)
+        return x, torch.tensor(ds.targets).to(C.DEVICE)
+
+    return (DeviceLoader(*tensors(True), batch_size, True),
+            DeviceLoader(*tensors(False), 256, False))
 
 
 def set_seed(s):
     torch.manual_seed(s)
-    torch.cuda.manual_seed_all(s)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(s)
 
 
 @torch.no_grad()
@@ -51,17 +86,23 @@ def train_one(name, arch, seed, train_loader, test_loader):
     crit = nn.CrossEntropyLoss()
     for epoch in range(1, C.TRAIN_EPOCHS + 1):
         net.train()
-        for x, y in train_loader:
+        for step, (x, y) in enumerate(train_loader):
             x, y = x.to(C.DEVICE), y.to(C.DEVICE)
             opt.zero_grad(set_to_none=True)
             crit(net(x), y).backward()
             opt.step()
+            if C.DEVICE == "mps" and step % 50 == 0:
+                torch.mps.synchronize()     # the CPU otherwise queues kernels faster than the GPU runs them (memory blow-up)
         sched.step()
         path = os.path.join(C.CKPT_DIR, f"{name}_s{seed}_e{epoch}.pt")
         torch.save({"state_dict": net.state_dict(), "arch": arch,
                     "name": name, "seed": seed, "epoch": epoch}, path)
     acc = evaluate(net, test_loader)
     print(f"[{name} s{seed}] final test acc = {acc:.4f}")
+    del net, opt, sched
+    gc.collect()
+    if C.DEVICE == "mps":
+        torch.mps.empty_cache()     # between models only: the MPS allocator cache otherwise piles up (OOM)
     return acc
 
 
